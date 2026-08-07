@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Tic Tac Toe</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#a85a26">
+<meta name="background-color" content="#a85a26">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tic Tac Toe">
+<meta name="description" content="A premium wooden-themed Tic Tac Toe game with themes, symbols, sound and offline play.">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+<style>
+  :root{
+    --green:#7ac142;
+    --green-dark:#5a9c2b;
+    --green-darker:#457a1f;
+    --green-light:#a7dd6b;
+    --red:#e0453f;
+    --red-dark:#b3332e;
+    --cream:#f3dfa8;
+    --cream-dark:#e6c877;
+    --wood-border:#8a5a2b;
+    --wood-border-dark:#5e3b18;
+
+    /* board theme (default = classic wood) */
+    --bt-outer-a:#b9772f; --bt-outer-b:#7c4a1c; --bt-shadow:#5e3b18;
+    --bt-cell-a:#d9a463; --bt-cell-b:#b3763a; --bt-cell-c:#96602c;
+    --bt-cell-win-a:#e8c98a; --bt-cell-win-b:#c99a4c; --bt-cell-win-c:#a97c33;
+    --bt-score-a:#c9924f; --bt-score-b:#a5682c; --bt-score-a2:#b98a4d; --bt-score-b2:#8c5f2a;
+  }
+  #app.theme-dark{
+    --bt-outer-a:#4a3220; --bt-outer-b:#241609; --bt-shadow:#120a04;
+    --bt-cell-a:#6b4a30; --bt-cell-b:#3a2818; --bt-cell-c:#24170c;
+    --bt-cell-win-a:#8a6a44; --bt-cell-win-b:#5c4128; --bt-cell-win-c:#3a2818;
+    --bt-score-a:#4a3220; --bt-score-b:#241609; --bt-score-a2:#3a2818; --bt-score-b2:#1c1207;
+  }
+  #app.theme-marble{
+    --bt-outer-a:#e8e6e1; --bt-outer-b:#c9c5bd; --bt-shadow:#9c968c;
+    --bt-cell-a:#f7f5f1; --bt-cell-b:#e3e0d9; --bt-cell-c:#cac5bb;
+    --bt-cell-win-a:#fff6d6; --bt-cell-win-b:#f0e2b0; --bt-cell-win-c:#ddcb95;
+    --bt-score-a:#d8d4cc; --bt-score-b:#b0aba0; --bt-score-a2:#c4bfb5; --bt-score-b2:#9c9689;
+  }
+  #app.theme-neon{
+    --bt-outer-a:#1a1a2e; --bt-outer-b:#0d0d1a; --bt-shadow:#000000;
+    --bt-cell-a:#25254a; --bt-cell-b:#16162b; --bt-cell-c:#0a0a16;
+    --bt-cell-win-a:#4a1e6e; --bt-cell-win-b:#2f1350; --bt-cell-win-c:#1a0a2e;
+    --bt-score-a:#22223f; --bt-score-b:#121220; --bt-score-a2:#1e1e38; --bt-score-b2:#0f0f1e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    font-family:'Segoe UI', Verdana, Tahoma, sans-serif;
+  }
+  body{
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 2px, transparent 2px, transparent 40px),
+      linear-gradient(180deg, #c97b3d, #a85a26 40%, #8f4a1e 100%);
+    display:flex; align-items:center; justify-content:center;
+    width:100vw; height:100vh;
+    position:relative;
+  }
+  #app{
+    width:100%; max-width:480px; height:100%; max-height:900px;
+    position:relative; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .screen{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px; opacity:0; pointer-events:none; transform:scale(0.96);
+    transition:opacity .28s ease, transform .28s ease;
+  }
+  .screen.active{ opacity:1; pointer-events:auto; transform:scale(1); }
+
+  /* ---------- shared button styles ---------- */
+  .glossy{
+    background:linear-gradient(180deg, var(--green-light), var(--green) 45%, var(--green-dark) 100%);
+    border:3px solid #fff;
+    border-radius:22px;
+    box-shadow:0 6px 0 var(--green-darker), 0 10px 16px rgba(0,0,0,0.35), inset 0 2px 4px rgba(255,255,255,0.5);
+    position:relative;
+    cursor:pointer;
+    transition:transform .08s ease, box-shadow .08s ease;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .glossy::before{
+    content:"";
+    position:absolute; top:8%; left:10%; width:55%; height:35%;
+    background:linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0));
+    border-radius:50%;
+    pointer-events:none;
+  }
+  .glossy:active{
+    transform:translateY(4px);
+    box-shadow:0 2px 0 var(--green-darker), 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.5);
+  }
+  .glossy.red{
+    background:linear-gradient(180deg, #f0857f, var(--red) 45%, var(--red-dark) 100%);
+    box-shadow:0 6px 0 #7d201c, 0 10px 16px rgba(0,0,0,0.35), inset 0 2px 4px rgba(255,255,255,0.5);
+  }
+  .glossy.red:active{
+    box-shadow:0 2px 0 #7d201c, 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.5);
+  }
+
+  /* ---------- top card (mode select) ---------- */
+  .topbar{
+    position:absolute; top:18px; left:50%; transform:translateX(-50%);
+    width:88%; max-width:420px;
+    background:linear-gradient(180deg, var(--cream), var(--cream-dark));
+    border:3px solid #fff;
+    border-radius:24px;
+    box-shadow:0 6px 0 var(--wood-border), 0 10px 18px rgba(0,0,0,0.3);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 22px;
+  }
+  .icon-btn{
+    width:52px; height:40px; border-radius:12px;
+    background:linear-gradient(180deg,#fff,#e6e6e6);
+    border:2px solid #fff;
+    box-shadow:0 3px 0 #b8b8b8, 0 5px 8px rgba(0,0,0,0.25);
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; cursor:pointer;
+  }
+  .lang-btn{
+    width:60px; height:44px; border-radius:16px;
+    background:linear-gradient(180deg,#fffdf5,#f3e3b8 55%, #e6cf8f);
+    border:2px solid #fff;
+    box-shadow:0 3px 0 #c9ab5f, 0 6px 10px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.8);
+    position:relative; overflow:hidden;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .lang-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #c9ab5f, 0 3px 6px rgba(0,0,0,0.25); }
+  .lang-btn::after{
+    content:""; position:absolute; top:-60%; left:-30%; width:45%; height:220%;
+    background:linear-gradient(120deg, transparent, rgba(255,255,255,0.75), transparent);
+    transform:rotate(18deg) translateX(-140%);
+    animation:langShimmer 3.4s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes langShimmer{
+    0%{ transform:rotate(18deg) translateX(-140%); }
+    45%{ transform:rotate(18deg) translateX(240%); }
+    100%{ transform:rotate(18deg) translateX(240%); }
+  }
+  #langFlag{
+    font-size:22px; display:inline-block; transition:transform .3s ease;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,0.25));
+  }
+  @keyframes flagFlip{
+    0%{ transform:scaleX(1) rotate(0deg); }
+    45%{ transform:scaleX(0.1) rotate(8deg); }
+    55%{ transform:scaleX(0.1) rotate(-8deg); }
+    100%{ transform:scaleX(1) rotate(0deg); }
+  }
+  .lang-btn.flipping #langFlag{ animation:flagFlip .38s ease; }
+  .sound-btn{
+    width:48px; height:48px; border-radius:50%;
+  }
+
+  .main-card{
+    background:linear-gradient(180deg, var(--cream), var(--cream-dark));
+    border:3px solid #fff;
+    border-radius:28px;
+    box-shadow:0 8px 0 var(--wood-border), 0 14px 22px rgba(0,0,0,0.35);
+    padding:30px 26px 24px;
+    width:90%; max-width:420px;
+    display:flex; flex-direction:column; align-items:center; gap:18px;
+    margin-top:62px;
+  }
+  .title{
+    color:#6b4423; font-weight:800; font-size:26px; letter-spacing:1px;
+    text-shadow:0 2px 0 rgba(255,255,255,0.5);
+    margin:0;
+  }
+  .mode-row{ display:flex; gap:20px; }
+  .mode-btn{ width:112px; height:86px; flex-direction:column; gap:4px; }
+  .mode-btn svg{ width:40px; height:40px; }
+  .mode-label{
+    font-size:11px; color:#fff; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,0.4);
+  }
+  .rounds-row{ display:flex; gap:12px; }
+  .round-btn{
+    width:64px; height:58px; font-size:18px; font-weight:800; color:#fff;
+    text-shadow:0 2px 2px rgba(0,0,0,0.35); flex-direction:column; gap:2px;
+  }
+  .round-btn .rn{ font-size:10px; opacity:.85; }
+  .round-btn.selected{
+    box-shadow:0 0 0 4px #fff8, 0 6px 0 var(--green-darker), 0 10px 16px rgba(0,0,0,0.35);
+  }
+  .back-btn{ width:64px; height:48px; margin-top:2px; }
+  .back-btn svg{ width:24px; height:24px; }
+
+  .diff-heading{
+    font-size:10px; color:#8a5a2b; font-weight:700; letter-spacing:1px;
+    margin:-8px 0 -10px;
+  }
+  .diff-row{ display:flex; gap:8px; }
+  .diff-btn{
+    width:90px; height:44px; font-size:12px; font-weight:800; color:#fff;
+    text-shadow:0 2px 2px rgba(0,0,0,0.35);
+  }
+  .diff-btn.selected{
+    box-shadow:0 0 0 4px #fff8, 0 6px 0 var(--green-darker), 0 10px 16px rgba(0,0,0,0.35);
+  }
+  .customize-btn{
+    width:100%; height:48px; font-size:12px; font-weight:800; color:#fff; letter-spacing:.5px;
+    text-shadow:0 1px 2px rgba(0,0,0,0.35); border-radius:16px; gap:8px; margin-top:2px;
+  }
+
+  /* ---------- customize & stats overlay ---------- */
+  .customize-modal{
+    max-height:82vh; width:88%; max-width:380px;
+    padding:24px 20px 20px; gap:12px;
+  }
+  .modal-scroll{
+    overflow-y:auto; display:flex; flex-direction:column; gap:12px;
+    width:100%; padding-right:2px; max-height:calc(82vh - 90px);
+  }
+  .customize-modal h3{
+    margin:4px 0 -4px; font-size:11px; color:#6b4423; letter-spacing:1px; text-align:left;
+  }
+  .swatch-row{ display:flex; gap:8px; }
+  .swatch-btn{
+    width:62px; height:62px; border-radius:14px; border:3px solid #fff;
+    cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,0.25); position:relative;
+  }
+  .swatch-btn.selected{ box-shadow:0 0 0 3px var(--green-dark), 0 4px 0 rgba(0,0,0,0.25); }
+  .swatch-btn.sw-classic{ background:linear-gradient(145deg,#b9772f,#7c4a1c); }
+  .swatch-btn.sw-dark{ background:linear-gradient(145deg,#4a3220,#241609); }
+  .swatch-btn.sw-marble{ background:linear-gradient(145deg,#e8e6e1,#c9c5bd); }
+  .swatch-btn.sw-neon{ background:linear-gradient(145deg,#1a1a2e,#0d0d1a); box-shadow:0 4px 0 rgba(0,0,0,.25), inset 0 0 8px #00fff2aa; }
+  .symbol-row{ display:flex; gap:8px; }
+  .symbol-btn{
+    flex:1; height:54px; border-radius:14px; border:3px solid #fff;
+    background:linear-gradient(180deg,#fff,#eee); display:flex; align-items:center; justify-content:center;
+    gap:4px; font-size:18px; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,0.2);
+  }
+  .symbol-btn.selected{ box-shadow:0 0 0 3px var(--green-dark), 0 4px 0 rgba(0,0,0,0.2); }
+  .stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .stat-item{ background:rgba(255,255,255,.4); border-radius:10px; padding:8px 6px; text-align:center; }
+  .stat-val{ font-size:17px; font-weight:800; color:#5c3a1e; }
+  .stat-label{ font-size:8px; color:#7a5a3a; font-weight:700; letter-spacing:.4px; }
+  .customize-modal .modal-btns{ margin-top:2px; }
+
+  /* ---------- gameplay screen ---------- */
+  #gameScreen{ justify-content:flex-start; padding-top:70px; }
+  .top-left-btns{
+    position:absolute; top:18px; left:18px; display:flex; gap:10px; z-index:5;
+  }
+  .circle-btn{ width:52px; height:52px; border-radius:50%; }
+  .circle-btn svg{ width:20px; height:20px; }
+  .circle-btn.disabled{ opacity:0.45; pointer-events:none; }
+  .pause-btn{
+    position:absolute; top:18px; right:18px; width:56px; height:56px; border-radius:50%;
+  }
+  .pause-btn svg{ width:22px; height:22px; }
+
+  .board-wrap{
+    display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(3, 1fr); gap:8px;
+    width:min(78vw, 340px); height:min(78vw, 340px);
+    padding:10px; border-radius:20px;
+    background:linear-gradient(145deg,var(--bt-outer-a),var(--bt-outer-b));
+    box-shadow:0 10px 0 var(--bt-shadow), 0 16px 24px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15);
+    margin-top:20px;
+    box-sizing:border-box;
+    transition:background .3s ease, box-shadow .3s ease;
+  }
+  .cell{
+    width:100%; height:100%; min-width:0; min-height:0;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.12), transparent 60%),
+      linear-gradient(160deg,var(--bt-cell-a),var(--bt-cell-b) 60%, var(--bt-cell-c));
+    border-radius:12px;
+    box-shadow:inset 0 4px 8px rgba(0,0,0,0.35), inset 0 -2px 3px rgba(255,255,255,0.25);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    position:relative;
+    transition:background .3s ease;
+  }
+  .cell .mark-inner{
+    width:62%; height:62%; opacity:0; transform:scale(0.4);
+    transition:opacity .18s ease, transform .18s ease;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cell.filled .mark-inner{ opacity:1; transform:scale(1); }
+  .mark-inner.emoji{ font-size:min(9vw,40px); line-height:1; }
+  .cell.win{ background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.25), transparent 60%),
+      linear-gradient(160deg,var(--bt-cell-win-a),var(--bt-cell-win-b) 60%, var(--bt-cell-win-c)); }
+
+  .scoreboard{
+    display:flex; margin-top:26px; border-radius:16px; overflow:hidden;
+    box-shadow:0 6px 0 var(--bt-shadow), 0 10px 16px rgba(0,0,0,0.35);
+    border:3px solid #fff;
+  }
+  .score-box{
+    width:130px; padding:12px 10px 14px; text-align:center;
+    background:linear-gradient(180deg,var(--bt-score-a),var(--bt-score-b));
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    transition:background .3s ease;
+  }
+  .score-box.p2{ background:linear-gradient(180deg,var(--bt-score-a2),var(--bt-score-b2)); }
+  .score-box svg{ width:30px; height:30px; }
+  .score-val{ font-size:28px; font-weight:800; color:#fff; text-shadow:0 2px 2px rgba(0,0,0,0.4); }
+  .score-name{ font-size:11px; color:#fff2d8; font-weight:600; letter-spacing:.5px; }
+  .round-indicator{
+    margin-top:14px; color:#3c2510; font-weight:700; font-size:13px;
+    background:rgba(255,255,255,0.35); padding:6px 16px; border-radius:20px;
+  }
+
+  /* ---------- winner modal ---------- */
+  .overlay{
+    position:absolute; inset:0; background:rgba(30,15,5,0.55);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+    z-index:20;
+  }
+  .overlay.active{ opacity:1; pointer-events:auto; }
+  .modal{
+    background:linear-gradient(180deg, var(--cream), var(--cream-dark));
+    border:4px solid #fff;
+    border-radius:26px;
+    box-shadow:0 10px 0 var(--wood-border), 0 18px 30px rgba(0,0,0,0.45);
+    padding:34px 28px 28px;
+    width:82%; max-width:340px;
+    display:flex; flex-direction:column; align-items:center; gap:20px;
+    transform:translateY(30px) scale(0.9);
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .overlay.active .modal{ transform:translateY(0) scale(1); }
+  .win-icon{ width:64px; height:64px; }
+  @keyframes trophyPop{
+    0%{ transform:scale(0.3) rotate(-15deg); }
+    55%{ transform:scale(1.25) rotate(8deg); }
+    75%{ transform:scale(0.95) rotate(-4deg); }
+    100%{ transform:scale(1) rotate(0deg); }
+  }
+  .win-icon.celebrate{ animation:trophyPop .55s ease; width:76px; height:76px; }
+  .modal.celebrate{
+    box-shadow:0 10px 0 var(--wood-border), 0 0 0 5px #ffd54a99, 0 18px 34px rgba(0,0,0,0.5);
+  }
+  #confettiCanvas{
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:25;
+  }
+  .win-text{
+    font-size:20px; font-weight:800; color:#5c3a1e; text-align:center;
+    text-shadow:0 1px 0 rgba(255,255,255,0.5);
+  }
+  .modal-btns{ display:flex; gap:14px; width:100%; }
+  .modal-btn{
+    flex:1; height:52px; font-size:14px; font-weight:800; color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,0.35); border-radius:16px;
+  }
+
+  .winline{
+    position:absolute; background:#ffd54a; border-radius:6px;
+    box-shadow:0 0 12px 3px rgba(255,213,74,0.8);
+    transform-origin:left center;
+    opacity:0; transition:opacity .2s ease;
+    pointer-events:none;
+  }
+  .winline.show{ opacity:1; }
+
+  .paused-banner{
+    position:absolute; inset:0; background:rgba(20,10,5,0.6);
+    display:none; align-items:center; justify-content:center; z-index:15;
+    color:#fff; font-size:22px; font-weight:800; letter-spacing:1px;
+  }
+  .paused-banner.show{ display:flex; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ========== MODE SELECT SCREEN ========== -->
+  <div class="screen active" id="modeScreen">
+    <div class="topbar">
+      <div class="icon-btn lang-btn" id="langBtn" title="Change language">
+        <span id="langFlag">🇬🇧</span>
+      </div>
+      <div class="icon-btn sound-btn" id="musicBtn" title="Background Music">🔇</div>
+      <div class="icon-btn sound-btn" id="soundBtn">🔊</div>
+    </div>
+    <div class="main-card">
+      <p class="title" id="titleText">TIC TAC TOE</p>
+      <div class="mode-row">
+        <div class="glossy mode-btn" id="pvpBtn">
+          <svg viewBox="0 0 24 24"><g fill="#fff"><circle cx="8" cy="7" r="3.2"/><path d="M8 11c-3.5 0-6.3 2.1-6.3 5v1.2h12.6V16c0-2.9-2.8-5-6.3-5z"/><circle cx="17" cy="8" r="2.6" fill="#eaffe0"/><path d="M17 11.4c-2.9 0-5.2 1.8-5.2 4.1v.7h10.4v-.7c0-2.3-2.3-4.1-5.2-4.1z" fill="#eaffe0"/></g></svg>
+          <span class="mode-label" id="modeLabelPvp">2 PLAYERS</span>
+        </div>
+        <div class="glossy mode-btn" id="pvcBtn">
+          <svg viewBox="0 0 24 24"><g fill="#fff"><circle cx="8" cy="7" r="3.2"/><path d="M8 11c-3.5 0-6.3 2.1-6.3 5v1.2h12.6V16c0-2.9-2.8-5-6.3-5z"/></g><g fill="#eaffe0"><rect x="14" y="6" width="9" height="7" rx="1.2"/><rect x="17" y="14" width="3" height="1.6"/><rect x="14.5" y="16" width="8" height="1.6" rx="0.8"/></g></svg>
+          <span class="mode-label" id="modeLabelPvc">VS COMPUTER</span>
+        </div>
+      </div>
+      <div class="rounds-row">
+        <div class="glossy round-btn" data-r="1"><span class="rn">ROUNDS</span>1</div>
+        <div class="glossy round-btn" data-r="2"><span class="rn">ROUNDS</span>2</div>
+        <div class="glossy round-btn" data-r="3"><span class="rn">ROUNDS</span>3</div>
+        <div class="glossy round-btn" data-r="4"><span class="rn">ROUNDS</span>4</div>
+      </div>
+      <p class="diff-heading" id="diffHeading">DIFFICULTY (VS COMPUTER)</p>
+      <div class="diff-row">
+        <div class="glossy diff-btn" data-d="easy"><span id="diffEasyText">EASY</span></div>
+        <div class="glossy diff-btn selected" data-d="medium"><span id="diffMediumText">MEDIUM</span></div>
+        <div class="glossy diff-btn" data-d="hard"><span id="diffHardText">HARD</span></div>
+      </div>
+      <div class="glossy customize-btn" id="customizeBtn">🎨 <span id="customizeBtnText">CUSTOMIZE &amp; STATS</span></div>
+      <div class="glossy back-btn" id="backBtn0">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CUSTOMIZE & STATS OVERLAY ========== -->
+  <div class="overlay" id="customizeOverlay">
+    <div class="modal customize-modal">
+      <div class="modal-scroll">
+        <h3 id="themeHeading">BOARD THEME</h3>
+        <div class="swatch-row" id="themeRow">
+          <div class="swatch-btn sw-classic selected" data-theme="classic" title="Classic Wood"></div>
+          <div class="swatch-btn sw-dark" data-theme="dark" title="Dark Wood"></div>
+          <div class="swatch-btn sw-marble" data-theme="marble" title="Marble"></div>
+          <div class="swatch-btn sw-neon" data-theme="neon" title="Neon"></div>
+        </div>
+        <h3 id="symbolHeading">SYMBOLS</h3>
+        <div class="symbol-row" id="symbolRow">
+          <div class="symbol-btn selected" data-symbol="classic">✕ / ◯</div>
+          <div class="symbol-btn" data-symbol="catdog">🐱/🐶</div>
+          <div class="symbol-btn" data-symbol="starmoon">⭐/🌙</div>
+          <div class="symbol-btn" data-symbol="firewater">🔥/💧</div>
+        </div>
+        <h3 id="statsHeading">STATS</h3>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="glossy modal-btn red" id="resetStatsBtn" style="width:100%; height:44px; margin-top:2px;"><span id="resetStatsText">RESET STATS</span></div>
+      </div>
+      <div class="modal-btns">
+        <div class="glossy modal-btn" id="closeCustomizeBtn"><span id="closeCustomizeText">CLOSE</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== GAMEPLAY SCREEN ========== -->
+  <div class="screen" id="gameScreen">
+    <div class="top-left-btns">
+      <div class="glossy circle-btn red" id="exitBtn" title="Exit">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M10 6H6a2 2 0 00-2 2v8a2 2 0 002 2h4M15 16l4-4-4-4M19 12H9" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="glossy circle-btn" id="undoBtn" title="Undo">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 010 12h-3" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="glossy pause-btn" id="pauseBtn">
+      <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="#fff"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="#fff"/></svg>
+    </div>
+    <div style="position:relative;">
+      <div class="board-wrap" id="board"></div>
+    </div>
+    <div class="scoreboard">
+      <div class="score-box p1">
+        <svg viewBox="0 0 24 24"><g fill="#fff"><circle cx="12" cy="7" r="3.4"/><path d="M12 11.5c-3.9 0-7 2.3-7 5.4v1.3h14v-1.3c0-3.1-3.1-5.4-7-5.4z"/></g></svg>
+        <div class="score-val" id="p1Score">0</div>
+        <div class="score-name" id="p1Name">PLAYER 1</div>
+      </div>
+      <div class="score-box p2" id="p2Box">
+        <svg viewBox="0 0 24 24"><g fill="#fff"><circle cx="12" cy="7" r="3.4"/><path d="M12 11.5c-3.9 0-7 2.3-7 5.4v1.3h14v-1.3c0-3.1-3.1-5.4-7-5.4z"/></g></svg>
+        <div class="score-val" id="p2Score">0</div>
+        <div class="score-name" id="p2Name">PLAYER 2</div>
+      </div>
+    </div>
+    <div class="round-indicator" id="roundIndicator">Round 1 of 1</div>
+
+    <div class="paused-banner" id="pausedBanner"><span id="pausedBannerText">PAUSED — tap to resume</span></div>
+  </div>
+
+  <!-- ========== WINNER MODAL ========== -->
+  <div class="overlay" id="winOverlay">
+    <div class="modal" id="winModal">
+      <svg class="win-icon" id="winIcon" viewBox="0 0 24 24"><path fill="#ffd54a" d="M5 3h14v2h3v3c0 2.5-2 4.5-4.4 4.7A5 5 0 0113 16.9V19h3v2H8v-2h3v-2.1a5 5 0 01-4.6-4.2C4 12.5 2 10.5 2 8V5h3V3zm0 4H3.5v1c0 1.3.9 2.4 2.1 2.8A9 9 0 015 8.8V7zm14 0v1.8c0 .1 0 .2 0 .3 1.2-.4 2-1.5 2-2.8V7H19z"/></svg>
+      <div class="win-text" id="winText">Winner: Player!</div>
+      <div class="modal-btns">
+        <div class="glossy modal-btn" id="playAgainBtn"><span id="playAgainText">PLAY AGAIN</span></div>
+        <div class="glossy modal-btn red" id="homeBtn"><span id="homeText">HOME</span></div>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="confettiCanvas"></canvas>
+
+</div>
+
+<script>
+(function(){
+  const modeScreen = document.getElementById('modeScreen');
+  const gameScreen = document.getElementById('gameScreen');
+  const boardEl = document.getElementById('board');
+  const winOverlay = document.getElementById('winOverlay');
+  const winText = document.getElementById('winText');
+  const pausedBanner = document.getElementById('pausedBanner');
+  const roundIndicator = document.getElementById('roundIndicator');
+
+  let selectedRounds = 1;
+  let difficulty = 'medium';
+  let vsComputer = false;
+  let board = Array(9).fill(null);
+  let current = 'X'; // X = player1(red-icon slot but green X), O = red O
+  let scores = {p1:0, p2:0};
+  let roundsPlayed = 0;
+  let gameOver = false;
+  let paused = false;
+  let cells = [];
+  let moveHistory = [];
+  let currentTheme = 'classic';
+  let currentSymbolSet = 'classic';
+  let stats = { gamesPlayed:0, pvpP1Wins:0, pvpP2Wins:0, pvpDraws:0, vsComputerWins:0, vsComputerLosses:0, vsComputerDraws:0 };
+
+  const SYMBOL_SETS = {
+    classic: {
+      X: '<div class="mark-inner"><svg viewBox="0 0 24 24" style="width:100%;height:100%"><path d="M4 4L20 20M20 4L4 20" stroke="#5fbf3a" stroke-width="4" stroke-linecap="round"/></svg></div>',
+      O: '<div class="mark-inner"><svg viewBox="0 0 24 24" style="width:100%;height:100%"><circle cx="12" cy="12" r="8" fill="none" stroke="#e0453f" stroke-width="4"/></svg></div>'
+    },
+    catdog: {
+      X: '<div class="mark-inner emoji">🐱</div>',
+      O: '<div class="mark-inner emoji">🐶</div>'
+    },
+    starmoon: {
+      X: '<div class="mark-inner emoji">⭐</div>',
+      O: '<div class="mark-inner emoji">🌙</div>'
+    },
+    firewater: {
+      X: '<div class="mark-inner emoji">🔥</div>',
+      O: '<div class="mark-inner emoji">💧</div>'
+    }
+  };
+
+  /* ---------------- languages / i18n ---------------- */
+  const LANGUAGES = [
+    {code:'en', flag:'🇬🇧'},
+    {code:'hi', flag:'🇮🇳'},
+    {code:'es', flag:'🇪🇸'},
+    {code:'fr', flag:'🇫🇷'},
+    {code:'de', flag:'🇩🇪'},
+    {code:'zh', flag:'🇨🇳'},
+    {code:'ja', flag:'🇯🇵'},
+    {code:'pt', flag:'🇵🇹'},
+    {code:'ru', flag:'🇷🇺'}
+  ];
+  let currentLangIndex = 0;
+  let currentLang = 'en';
+
+  const TRANSLATIONS = {
+    en:{ title:"TIC TAC TOE", twoPlayers:"2 PLAYERS", vsComputer:"VS COMPUTER", rounds:"ROUNDS", difficultyHeading:"DIFFICULTY (VS COMPUTER)", easy:"EASY", medium:"MEDIUM", hard:"HARD", customize:"CUSTOMIZE & STATS", boardTheme:"BOARD THEME", symbols:"SYMBOLS", stats:"STATS", gamesPlayed:"GAMES PLAYED", vsCpuWins:"VS CPU WINS", vsCpuLosses:"VS CPU LOSSES", vsCpuDraws:"VS CPU DRAWS", p1WinsShort:"2P: PLAYER 1", p2WinsShort:"2P: PLAYER 2", resetStats:"RESET STATS", close:"CLOSE", player1:"PLAYER 1", player2:"PLAYER 2", computer:"COMPUTER", roundOf:"Round {n} of {total}", paused:"PAUSED — tap to resume", winnerP1:"Winner: Player 1!", winnerP2:"Winner: Player 2!", youWin:"🏆 You Win!", computerWins:"Computer Wins!", draw:"It's a Draw!", playAgain:"PLAY AGAIN", home:"HOME" },
+    hi:{ title:"टिक टैक टो", twoPlayers:"2 खिलाड़ी", vsComputer:"कंप्यूटर से", rounds:"राउंड", difficultyHeading:"कठिनाई (कंप्यूटर से)", easy:"आसान", medium:"मध्यम", hard:"कठिन", customize:"कस्टमाइज़ और आँकड़े", boardTheme:"बोर्ड थीम", symbols:"प्रतीक", stats:"आँकड़े", gamesPlayed:"कुल गेम्स", vsCpuWins:"जीत (कंप्यूटर)", vsCpuLosses:"हार (कंप्यूटर)", vsCpuDraws:"ड्रॉ (कंप्यूटर)", p1WinsShort:"2P: खिलाड़ी 1", p2WinsShort:"2P: खिलाड़ी 2", resetStats:"आँकड़े रीसेट करें", close:"बंद करें", player1:"खिलाड़ी 1", player2:"खिलाड़ी 2", computer:"कंप्यूटर", roundOf:"राउंड {n} / {total}", paused:"रुका हुआ — जारी रखने के लिए टैप करें", winnerP1:"विजेता: खिलाड़ी 1!", winnerP2:"विजेता: खिलाड़ी 2!", youWin:"🏆 आप जीत गए!", computerWins:"कंप्यूटर जीता!", draw:"बराबरी!", playAgain:"फिर से खेलें", home:"होम" },
+    es:{ title:"TRES EN RAYA", twoPlayers:"2 JUGADORES", vsComputer:"VS ORDENADOR", rounds:"RONDAS", difficultyHeading:"DIFICULTAD (VS ORDENADOR)", easy:"FÁCIL", medium:"MEDIO", hard:"DIFÍCIL", customize:"PERSONALIZAR Y ESTADÍSTICAS", boardTheme:"TEMA DEL TABLERO", symbols:"SÍMBOLOS", stats:"ESTADÍSTICAS", gamesPlayed:"PARTIDAS JUGADAS", vsCpuWins:"VICTORIAS VS CPU", vsCpuLosses:"DERROTAS VS CPU", vsCpuDraws:"EMPATES VS CPU", p1WinsShort:"2J: JUGADOR 1", p2WinsShort:"2J: JUGADOR 2", resetStats:"REINICIAR ESTADÍSTICAS", close:"CERRAR", player1:"JUGADOR 1", player2:"JUGADOR 2", computer:"ORDENADOR", roundOf:"Ronda {n} de {total}", paused:"PAUSADO — toca para continuar", winnerP1:"¡Ganador: Jugador 1!", winnerP2:"¡Ganador: Jugador 2!", youWin:"🏆 ¡Ganaste!", computerWins:"¡Gana el Ordenador!", draw:"¡Empate!", playAgain:"JUGAR DE NUEVO", home:"INICIO" },
+    fr:{ title:"MORPION", twoPlayers:"2 JOUEURS", vsComputer:"VS ORDINATEUR", rounds:"MANCHES", difficultyHeading:"DIFFICULTÉ (VS ORDINATEUR)", easy:"FACILE", medium:"MOYEN", hard:"DIFFICILE", customize:"PERSONNALISER ET STATS", boardTheme:"THÈME DU PLATEAU", symbols:"SYMBOLES", stats:"STATISTIQUES", gamesPlayed:"PARTIES JOUÉES", vsCpuWins:"VICTOIRES VS IA", vsCpuLosses:"DÉFAITES VS IA", vsCpuDraws:"NULS VS IA", p1WinsShort:"2J: JOUEUR 1", p2WinsShort:"2J: JOUEUR 2", resetStats:"RÉINITIALISER", close:"FERMER", player1:"JOUEUR 1", player2:"JOUEUR 2", computer:"ORDINATEUR", roundOf:"Manche {n} sur {total}", paused:"PAUSE — touchez pour continuer", winnerP1:"Gagnant : Joueur 1 !", winnerP2:"Gagnant : Joueur 2 !", youWin:"🏆 Vous avez gagné !", computerWins:"L'ordinateur gagne !", draw:"Match nul !", playAgain:"REJOUER", home:"ACCUEIL" },
+    de:{ title:"TIC TAC TOE", twoPlayers:"2 SPIELER", vsComputer:"VS COMPUTER", rounds:"RUNDEN", difficultyHeading:"SCHWIERIGKEIT (VS COMPUTER)", easy:"LEICHT", medium:"MITTEL", hard:"SCHWER", customize:"ANPASSEN & STATISTIK", boardTheme:"BRETT-DESIGN", symbols:"SYMBOLE", stats:"STATISTIK", gamesPlayed:"SPIELE GESPIELT", vsCpuWins:"SIEGE VS CPU", vsCpuLosses:"NIEDERLAGEN VS CPU", vsCpuDraws:"UNENTSCHIEDEN VS CPU", p1WinsShort:"2S: SPIELER 1", p2WinsShort:"2S: SPIELER 2", resetStats:"STATISTIK ZURÜCKSETZEN", close:"SCHLIESSEN", player1:"SPIELER 1", player2:"SPIELER 2", computer:"COMPUTER", roundOf:"Runde {n} von {total}", paused:"PAUSE — zum Fortsetzen tippen", winnerP1:"Gewinner: Spieler 1!", winnerP2:"Gewinner: Spieler 2!", youWin:"🏆 Du hast gewonnen!", computerWins:"Computer gewinnt!", draw:"Unentschieden!", playAgain:"NOCHMAL SPIELEN", home:"STARTSEITE" },
+    zh:{ title:"井字棋", twoPlayers:"双人对战", vsComputer:"对战电脑", rounds:"回合", difficultyHeading:"难度（对战电脑）", easy:"简单", medium:"中等", hard:"困难", customize:"自定义与统计", boardTheme:"棋盘主题", symbols:"符号", stats:"统计", gamesPlayed:"总局数", vsCpuWins:"对电脑胜", vsCpuLosses:"对电脑负", vsCpuDraws:"对电脑平", p1WinsShort:"双人：玩家1", p2WinsShort:"双人：玩家2", resetStats:"重置统计", close:"关闭", player1:"玩家1", player2:"玩家2", computer:"电脑", roundOf:"第 {n} / {total} 回合", paused:"已暂停 — 点击继续", winnerP1:"获胜者：玩家1！", winnerP2:"获胜者：玩家2！", youWin:"🏆 你赢了！", computerWins:"电脑获胜！", draw:"平局！", playAgain:"再玩一次", home:"主页" },
+    ja:{ title:"三目並べ", twoPlayers:"2人プレイ", vsComputer:"コンピュータ対戦", rounds:"ラウンド", difficultyHeading:"難易度（対コンピュータ）", easy:"かんたん", medium:"ふつう", hard:"むずかしい", customize:"カスタマイズと統計", boardTheme:"ボードテーマ", symbols:"シンボル", stats:"統計", gamesPlayed:"プレイ数", vsCpuWins:"CPU戦 勝ち", vsCpuLosses:"CPU戦 負け", vsCpuDraws:"CPU戦 引き分け", p1WinsShort:"2人: プレイヤー1", p2WinsShort:"2人: プレイヤー2", resetStats:"統計をリセット", close:"閉じる", player1:"プレイヤー1", player2:"プレイヤー2", computer:"コンピュータ", roundOf:"ラウンド {n} / {total}", paused:"一時停止中 — タップして再開", winnerP1:"勝者：プレイヤー1！", winnerP2:"勝者：プレイヤー2！", youWin:"🏆 あなたの勝ち！", computerWins:"コンピュータの勝ち！", draw:"引き分け！", playAgain:"もう一度プレイ", home:"ホーム" },
+    pt:{ title:"JOGO DA VELHA", twoPlayers:"2 JOGADORES", vsComputer:"VS COMPUTADOR", rounds:"RODADAS", difficultyHeading:"DIFICULDADE (VS COMPUTADOR)", easy:"FÁCIL", medium:"MÉDIO", hard:"DIFÍCIL", customize:"PERSONALIZAR E ESTATÍSTICAS", boardTheme:"TEMA DO TABULEIRO", symbols:"SÍMBOLOS", stats:"ESTATÍSTICAS", gamesPlayed:"JOGOS JOGADOS", vsCpuWins:"VITÓRIAS VS CPU", vsCpuLosses:"DERROTAS VS CPU", vsCpuDraws:"EMPATES VS CPU", p1WinsShort:"2J: JOGADOR 1", p2WinsShort:"2J: JOGADOR 2", resetStats:"REDEFINIR ESTATÍSTICAS", close:"FECHAR", player1:"JOGADOR 1", player2:"JOGADOR 2", computer:"COMPUTADOR", roundOf:"Rodada {n} de {total}", paused:"PAUSADO — toque para continuar", winnerP1:"Vencedor: Jogador 1!", winnerP2:"Vencedor: Jogador 2!", youWin:"🏆 Você Venceu!", computerWins:"Computador Venceu!", draw:"Empate!", playAgain:"JOGAR DE NOVO", home:"INÍCIO" },
+    ru:{ title:"КРЕСТИКИ-НОЛИКИ", twoPlayers:"2 ИГРОКА", vsComputer:"VS КОМПЬЮТЕР", rounds:"РАУНДЫ", difficultyHeading:"СЛОЖНОСТЬ (VS КОМПЬЮТЕР)", easy:"ЛЕГКО", medium:"СРЕДНЕ", hard:"СЛОЖНО", customize:"НАСТРОЙКИ И СТАТИСТИКА", boardTheme:"ТЕМА ПОЛЯ", symbols:"СИМВОЛЫ", stats:"СТАТИСТИКА", gamesPlayed:"ИГР СЫГРАНО", vsCpuWins:"ПОБЕДЫ VS ПК", vsCpuLosses:"ПОРАЖЕНИЯ VS ПК", vsCpuDraws:"НИЧЬИ VS ПК", p1WinsShort:"2И: ИГРОК 1", p2WinsShort:"2И: ИГРОК 2", resetStats:"СБРОСИТЬ СТАТИСТИКУ", close:"ЗАКРЫТЬ", player1:"ИГРОК 1", player2:"ИГРОК 2", computer:"КОМПЬЮТЕР", roundOf:"Раунд {n} из {total}", paused:"ПАУЗА — нажмите для продолжения", winnerP1:"Победитель: Игрок 1!", winnerP2:"Победитель: Игрок 2!", youWin:"🏆 Вы победили!", computerWins:"Компьютер победил!", draw:"Ничья!", playAgain:"ИГРАТЬ СНОВА", home:"ГЛАВНАЯ" }
+  };
+
+  function t(key){
+    const dict = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+    return dict[key] !== undefined ? dict[key] : TRANSLATIONS.en[key];
+  }
+
+  /* ---------------- persistence (localStorage) ---------------- */
+  function loadPrefs(){
+    try{
+      const raw = localStorage.getItem('tttPrefs');
+      if(raw){
+        const p = JSON.parse(raw);
+        if(p.theme) currentTheme = p.theme;
+        if(p.symbolSet) currentSymbolSet = p.symbolSet;
+        if(p.lang) currentLang = p.lang;
+      }
+    }catch(e){}
+    try{
+      const rawStats = localStorage.getItem('tttStats');
+      if(rawStats) stats = Object.assign(stats, JSON.parse(rawStats));
+    }catch(e){}
+    currentLangIndex = Math.max(0, LANGUAGES.findIndex(l=>l.code===currentLang));
+    if(currentLangIndex === -1) currentLangIndex = 0;
+  }
+  function savePrefs(){
+    try{ localStorage.setItem('tttPrefs', JSON.stringify({theme:currentTheme, symbolSet:currentSymbolSet, lang:currentLang})); }catch(e){}
+  }
+  function saveStats(){
+    try{ localStorage.setItem('tttStats', JSON.stringify(stats)); }catch(e){}
+  }
+  function applyTheme(){
+    const appEl = document.getElementById('app');
+    appEl.classList.remove('theme-classic','theme-dark','theme-marble','theme-neon');
+    appEl.classList.add('theme-'+currentTheme);
+  }
+
+  /* ---------------- apply language to all UI text ---------------- */
+  function applyLanguage(){
+    document.getElementById('titleText').textContent = t('title');
+    document.getElementById('modeLabelPvp').textContent = t('twoPlayers');
+    document.getElementById('modeLabelPvc').textContent = t('vsComputer');
+    document.querySelectorAll('.rn').forEach(el=>el.textContent = t('rounds'));
+    document.getElementById('diffHeading').textContent = t('difficultyHeading');
+    document.getElementById('diffEasyText').textContent = t('easy');
+    document.getElementById('diffMediumText').textContent = t('medium');
+    document.getElementById('diffHardText').textContent = t('hard');
+    document.getElementById('customizeBtnText').textContent = t('customize');
+    document.getElementById('themeHeading').textContent = t('boardTheme');
+    document.getElementById('symbolHeading').textContent = t('symbols');
+    document.getElementById('statsHeading').textContent = t('stats');
+    document.getElementById('resetStatsText').textContent = t('resetStats');
+    document.getElementById('closeCustomizeText').textContent = t('close');
+    document.getElementById('playAgainText').textContent = t('playAgain');
+    document.getElementById('homeText').textContent = t('home');
+    document.getElementById('pausedBannerText').textContent = t('paused');
+    updatePlayerNameLabels();
+    updateRoundUI();
+    if(document.getElementById('customizeOverlay').classList.contains('active')) renderStats();
+  }
+  function updatePlayerNameLabels(){
+    const p1El = document.getElementById('p1Name');
+    const p2El = document.getElementById('p2Name');
+    if(p1El) p1El.textContent = t('player1');
+    if(p2El) p2El.textContent = vsComputer ? t('computer') : t('player2');
+  }
+
+  /* ---------------- sound engine (WebAudio, no external files) ---------------- */
+  let soundOn = true;
+  let audioCtx = null;
+  function getCtx(){
+    if(!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC) audioCtx = new AC();
+    }
+    return audioCtx;
+  }
+  function beep(freq, dur, type, vol, delay){
+    if(!soundOn) return;
+    const ctx = getCtx();
+    if(!ctx) return;
+    try{
+      const t0 = ctx.currentTime + (delay||0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(vol||0.15, t0);
+      gain.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0+dur+0.02);
+    }catch(e){}
+  }
+  function sndTap(){ beep(320,0.07,'triangle',0.12); }
+  function sndX(){ beep(660,0.11,'sine',0.18); }
+  function sndO(){ beep(440,0.11,'sine',0.18); }
+  function sndWin(){ beep(523,0.12,'triangle',0.2,0); beep(659,0.12,'triangle',0.2,0.12); beep(784,0.2,'triangle',0.22,0.24); }
+  function sndBigWin(){
+    beep(523,0.1,'triangle',0.22,0);
+    beep(659,0.1,'triangle',0.22,0.1);
+    beep(784,0.1,'triangle',0.22,0.2);
+    beep(1046,0.28,'triangle',0.26,0.3);
+    beep(784,0.16,'sine',0.16,0.55);
+    beep(1046,0.32,'sine',0.22,0.68);
+  }
+  function sndDraw(){ beep(300,0.28,'sawtooth',0.14); }
+  function sndUndo(){ beep(240,0.09,'square',0.12); }
+  function vibrate(ms){ if(navigator.vibrate) navigator.vibrate(ms); }
+
+  /* ---------------- background music (WebAudio loop, independent mute) ---------------- */
+  let musicOn = false;
+  let chordTimer = null;
+  let melodyTimer = null;
+  let chordIndex = 0;
+  let melodyIndex = 0;
+
+  // Soft ambient chord progression: Cmaj7 - Am7 - Fmaj7 - G(add9), low register pad
+  const PAD_CHORDS = [
+    [130.81, 164.81, 196.00, 246.94], // Cmaj7
+    [110.00, 130.81, 164.81, 196.00], // Am7
+    [87.31, 130.81, 174.61, 220.00],  // Fmaj7-ish
+    [98.00, 146.83, 196.00, 246.94]   // G(add9)-ish
+  ];
+  // Gentle plucked melody, cycles over the same 4-chord loop (2 notes per chord)
+  const MELODY_PATTERN = [
+    523.25, 659.25,   // over Cmaj7
+    440.00, 523.25,   // over Am7
+    349.23, 440.00,   // over Fmaj7
+    392.00, 493.88    // over G(add9)
+  ];
+
+  function playPadChord(){
+    if(!musicOn) return;
+    const ctx = getCtx();
+    if(ctx){
+      try{
+        const chord = PAD_CHORDS[chordIndex % PAD_CHORDS.length];
+        const t0 = ctx.currentTime;
+        const dur = 4.0;
+        chord.forEach((freq, idx)=>{
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+          osc.frequency.setValueAtTime(freq, t0);
+          gain.gain.setValueAtTime(0.0001, t0);
+          gain.gain.linearRampToValueAtTime(0.075, t0+1.0);
+          gain.gain.linearRampToValueAtTime(0.06, t0+dur-1.1);
+          gain.gain.linearRampToValueAtTime(0.0001, t0+dur);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(t0); osc.stop(t0+dur+0.05);
+        });
+      }catch(e){}
+    }
+    chordIndex++;
+    chordTimer = setTimeout(playPadChord, 4000);
+  }
+
+  function playMelodyNote(){
+    if(!musicOn) return;
+    const ctx = getCtx();
+    if(ctx){
+      try{
+        const freq = MELODY_PATTERN[melodyIndex % MELODY_PATTERN.length];
+        const t0 = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t0);
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.linearRampToValueAtTime(0.14, t0+0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0+1.05);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(t0); osc.stop(t0+1.1);
+      }catch(e){}
+    }
+    melodyIndex++;
+    melodyTimer = setTimeout(playMelodyNote, 1000);
+  }
+
+  function startMusic(){
+    if(musicOn) return;
+    musicOn = true;
+    chordIndex = 0;
+    melodyIndex = 0;
+    playPadChord();
+    setTimeout(()=>{ if(musicOn) playMelodyNote(); }, 350);
+  }
+  function stopMusic(){
+    musicOn = false;
+    if(chordTimer){ clearTimeout(chordTimer); chordTimer = null; }
+    if(melodyTimer){ clearTimeout(melodyTimer); melodyTimer = null; }
+  }
+
+  /* ---------------- confetti burst ---------------- */
+  const confettiCanvas = document.getElementById('confettiCanvas');
+  const confettiCtx = confettiCanvas.getContext('2d');
+  let confettiRAF = null;
+  function launchConfetti(big){
+    const appEl = document.getElementById('app');
+    const rect = appEl.getBoundingClientRect();
+    confettiCanvas.width = rect.width;
+    confettiCanvas.height = rect.height;
+    const colors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#c77dff','#f72585','#4ade80'];
+    const count = big ? 160 : 90;
+    const particles = [];
+    for(let i=0;i<count;i++){
+      particles.push({
+        x: Math.random()*confettiCanvas.width,
+        y: -30 - Math.random()*confettiCanvas.height*0.5,
+        w: 6+Math.random()*6,
+        h: 8+Math.random()*10,
+        color: colors[Math.floor(Math.random()*colors.length)],
+        speedY: 2.2+Math.random()*3.2,
+        speedX: (Math.random()-0.5)*2.4,
+        rotation: Math.random()*360,
+        rotationSpeed: (Math.random()-0.5)*12,
+        opacity: 1
+      });
+    }
+    let start = null;
+    const duration = big ? 3400 : 2400;
+    if(confettiRAF) cancelAnimationFrame(confettiRAF);
+    function frame(ts){
+      if(!start) start = ts;
+      const elapsed = ts - start;
+      confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+      particles.forEach(p=>{
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.rotation += p.rotationSpeed;
+        if(elapsed > duration*0.6){
+          p.opacity = Math.max(0, 1-(elapsed-duration*0.6)/(duration*0.4));
+        }
+        confettiCtx.save();
+        confettiCtx.globalAlpha = p.opacity;
+        confettiCtx.translate(p.x, p.y);
+        confettiCtx.rotate(p.rotation*Math.PI/180);
+        confettiCtx.fillStyle = p.color;
+        confettiCtx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+        confettiCtx.restore();
+      });
+      if(elapsed < duration){
+        confettiRAF = requestAnimationFrame(frame);
+      } else {
+        confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+      }
+    }
+    confettiRAF = requestAnimationFrame(frame);
+  }
+
+  // ---- round button selection ----
+  document.querySelectorAll('.round-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      sndTap();
+      document.querySelectorAll('.round-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedRounds = parseInt(btn.dataset.r,10);
+    });
+  });
+  document.querySelector('.round-btn[data-r="1"]').classList.add('selected');
+
+  // ---- difficulty button selection ----
+  document.querySelectorAll('.diff-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      sndTap();
+      document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      difficulty = btn.dataset.d;
+    });
+  });
+
+  // ---- board theme selection ----
+  document.querySelectorAll('.swatch-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      sndTap();
+      document.querySelectorAll('.swatch-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      currentTheme = btn.dataset.theme;
+      applyTheme();
+      savePrefs();
+    });
+  });
+
+  // ---- symbol set selection ----
+  document.querySelectorAll('.symbol-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      sndTap();
+      document.querySelectorAll('.symbol-btn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      currentSymbolSet = btn.dataset.symbol;
+      savePrefs();
+    });
+  });
+
+  // ---- customize & stats overlay ----
+  const customizeOverlay = document.getElementById('customizeOverlay');
+  function renderStats(){
+    const grid = document.getElementById('statsGrid');
+    grid.innerHTML = `
+      <div class="stat-item"><div class="stat-val">${stats.gamesPlayed}</div><div class="stat-label">${t('gamesPlayed')}</div></div>
+      <div class="stat-item"><div class="stat-val">${stats.vsComputerWins}</div><div class="stat-label">${t('vsCpuWins')}</div></div>
+      <div class="stat-item"><div class="stat-val">${stats.vsComputerLosses}</div><div class="stat-label">${t('vsCpuLosses')}</div></div>
+      <div class="stat-item"><div class="stat-val">${stats.vsComputerDraws}</div><div class="stat-label">${t('vsCpuDraws')}</div></div>
+      <div class="stat-item"><div class="stat-val">${stats.pvpP1Wins}</div><div class="stat-label">${t('p1WinsShort')}</div></div>
+      <div class="stat-item"><div class="stat-val">${stats.pvpP2Wins}</div><div class="stat-label">${t('p2WinsShort')}</div></div>
+    `;
+  }
+  document.getElementById('customizeBtn').addEventListener('click', ()=>{
+    sndTap();
+    renderStats();
+    customizeOverlay.classList.add('active');
+  });
+  document.getElementById('closeCustomizeBtn').addEventListener('click', ()=>{
+    sndTap();
+    customizeOverlay.classList.remove('active');
+  });
+  document.getElementById('resetStatsBtn').addEventListener('click', ()=>{
+    sndTap();
+    stats = { gamesPlayed:0, pvpP1Wins:0, pvpP2Wins:0, pvpDraws:0, vsComputerWins:0, vsComputerLosses:0, vsComputerDraws:0 };
+    saveStats();
+    renderStats();
+  });
+
+  // ---- music toggle ----
+  document.getElementById('musicBtn').addEventListener('click', function(){
+    if(musicOn){
+      stopMusic();
+      this.textContent = '🔇';
+    } else {
+      startMusic();
+      this.textContent = '🎵';
+    }
+  });
+
+  // ---- language switcher (cycles through flags, translates whole UI) ----
+  const langBtn = document.getElementById('langBtn');
+  const langFlagEl = document.getElementById('langFlag');
+  langBtn.addEventListener('click', function(){
+    sndTap();
+    langBtn.classList.add('flipping');
+    setTimeout(()=>{
+      currentLangIndex = (currentLangIndex + 1) % LANGUAGES.length;
+      currentLang = LANGUAGES[currentLangIndex].code;
+      langFlagEl.textContent = LANGUAGES[currentLangIndex].flag;
+      applyLanguage();
+      savePrefs();
+    }, 190);
+    setTimeout(()=>{ langBtn.classList.remove('flipping'); }, 400);
+  });
+
+  // ---- load saved preferences and apply ----
+  loadPrefs();
+  applyTheme();
+  currentLangIndex = Math.max(0, LANGUAGES.findIndex(l=>l.code===currentLang));
+  langFlagEl.textContent = LANGUAGES[currentLangIndex].flag;
+  applyLanguage();
+  document.querySelectorAll('.swatch-btn').forEach(b=>b.classList.toggle('selected', b.dataset.theme===currentTheme));
+  document.querySelectorAll('.symbol-btn').forEach(b=>b.classList.toggle('selected', b.dataset.symbol===currentSymbolSet));
+
+  document.getElementById('pvpBtn').addEventListener('click', ()=>{ sndTap(); startGame(false); });
+  document.getElementById('pvcBtn').addEventListener('click', ()=>{ sndTap(); startGame(true); });
+
+  function startGame(isComputer){
+    vsComputer = isComputer;
+    scores = {p1:0, p2:0};
+    roundsPlayed = 0;
+    updatePlayerNameLabels();
+    modeScreen.classList.remove('active');
+    gameScreen.classList.add('active');
+    updateScoreUI();
+    updateRoundUI();
+    resetBoard();
+  }
+
+  function updateRoundUI(){
+    const n = Math.min(roundsPlayed+1, selectedRounds);
+    roundIndicator.textContent = t('roundOf').replace('{n}', n).replace('{total}', selectedRounds);
+  }
+
+  function buildBoard(){
+    boardEl.innerHTML = '';
+    cells = [];
+    for(let i=0;i<9;i++){
+      const c = document.createElement('div');
+      c.className = 'cell';
+      c.dataset.i = i;
+      c.addEventListener('click', ()=>handleCellClick(i));
+      boardEl.appendChild(c);
+      cells.push(c);
+    }
+  }
+
+  function resetBoard(){
+    board = Array(9).fill(null);
+    current = 'X';
+    gameOver = false;
+    moveHistory = [];
+    buildBoard();
+    updateUndoState();
+  }
+
+  function handleCellClick(i){
+    if(paused || gameOver) return;
+    if(board[i]) return;
+    if(vsComputer && current === 'O') return; // computer's turn, ignore taps
+    placeMark(i, current);
+  }
+
+  function placeMark(i, mark){
+    board[i] = mark;
+    moveHistory.push({i:i, mark:mark});
+    const c = cells[i];
+    c.innerHTML = SYMBOL_SETS[currentSymbolSet][mark];
+    c.classList.add('filled');
+    if(mark==='X'){ sndX(); } else { sndO(); }
+    vibrate(15);
+    updateUndoState();
+    const result = checkWin(board);
+    if(result){
+      endRound(result);
+      return;
+    }
+    if(board.every(v=>v)){
+      endRound({draw:true});
+      return;
+    }
+    current = current === 'X' ? 'O' : 'X';
+    if(vsComputer && current === 'O' && !gameOver){
+      setTimeout(computerMove, 450);
+    }
+  }
+
+  function computerMove(){
+    if(paused || gameOver) return;
+    const move = bestComputerMove();
+    if(move !== -1) placeMark(move, 'O');
+  }
+
+  function randomMove(){
+    const empties = board.map((v,i)=>v?null:i).filter(v=>v!==null);
+    return empties[Math.floor(Math.random()*empties.length)];
+  }
+
+  function bestComputerMove(){
+    const empties = board.map((v,i)=>v?null:i).filter(v=>v!==null);
+    if(empties.length === 0) return -1;
+
+    if(difficulty === 'hard') return minimaxMove();
+
+    if(difficulty === 'easy'){
+      // occasionally take a winning move, otherwise mostly random, never blocks
+      if(Math.random() < 0.35){
+        for(const i of empties){
+          const b = board.slice(); b[i]='O';
+          if(checkWin(b)) return i;
+        }
+      }
+      return randomMove();
+    }
+
+    // medium (default): win > block > center > corner > random
+    for(const i of empties){
+      const b = board.slice(); b[i]='O';
+      if(checkWin(b)) return i;
+    }
+    for(const i of empties){
+      const b = board.slice(); b[i]='X';
+      if(checkWin(b)) return i;
+    }
+    if(!board[4]) return 4;
+    const corners = [0,2,6,8].filter(i=>!board[i]);
+    if(corners.length) return corners[Math.floor(Math.random()*corners.length)];
+    return randomMove();
+  }
+
+  // ---- unbeatable minimax AI for Hard difficulty ----
+  function minimaxMove(){
+    let bestScore = -Infinity, move = -1;
+    for(let i=0;i<9;i++){
+      if(!board[i]){
+        board[i] = 'O';
+        const score = minimax(board, 0, false);
+        board[i] = null;
+        if(score > bestScore){ bestScore = score; move = i; }
+      }
+    }
+    return move;
+  }
+  function minimax(b, depth, isMax){
+    const result = checkWin(b);
+    if(result) return result.winner === 'O' ? 10-depth : depth-10;
+    if(b.every(v=>v)) return 0;
+    if(isMax){
+      let best = -Infinity;
+      for(let i=0;i<9;i++){
+        if(!b[i]){ b[i]='O'; best = Math.max(best, minimax(b, depth+1, false)); b[i]=null; }
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for(let i=0;i<9;i++){
+        if(!b[i]){ b[i]='X'; best = Math.min(best, minimax(b, depth+1, true)); b[i]=null; }
+      }
+      return best;
+    }
+  }
+
+  // ---- undo ----
+  function updateUndoState(){
+    const undoBtn = document.getElementById('undoBtn');
+    const disabled = gameOver || moveHistory.length === 0 || paused;
+    undoBtn.classList.toggle('disabled', disabled);
+  }
+  document.getElementById('undoBtn').addEventListener('click', ()=>{
+    if(gameOver || paused || moveHistory.length === 0) return;
+    sndUndo();
+    const removeCount = (vsComputer && moveHistory.length >= 2) ? 2 : 1;
+    for(let k=0; k<removeCount; k++){
+      const last = moveHistory.pop();
+      if(!last) break;
+      board[last.i] = null;
+      cells[last.i].innerHTML = '';
+      cells[last.i].classList.remove('filled');
+    }
+    current = 'X';
+    updateUndoState();
+  });
+
+  const LINES = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+  function checkWin(b){
+    for(const line of LINES){
+      const [a,b1,c] = line;
+      if(b[a] && b[a]===b[b1] && b[a]===b[c]){
+        return {winner:b[a], line};
+      }
+    }
+    return null;
+  }
+
+  function drawWinLine(line){
+    const first = cells[line[0]].getBoundingClientRect();
+    const last = cells[line[2]].getBoundingClientRect();
+    const wrapRect = boardEl.getBoundingClientRect();
+    const x1 = first.left + first.width/2 - wrapRect.left;
+    const y1 = first.top + first.height/2 - wrapRect.top;
+    const x2 = last.left + last.width/2 - wrapRect.left;
+    const y2 = last.top + last.height/2 - wrapRect.top;
+    const dx = x2-x1, dy = y2-y1;
+    const len = Math.sqrt(dx*dx+dy*dy);
+    const angle = Math.atan2(dy,dx) * 180/Math.PI;
+    const lineEl = document.createElement('div');
+    lineEl.className = 'winline';
+    lineEl.style.width = len+'px';
+    lineEl.style.height = '8px';
+    lineEl.style.left = x1+'px';
+    lineEl.style.top = (y1-4)+'px';
+    lineEl.style.transform = `rotate(${angle}deg)`;
+    boardEl.parentElement.appendChild(lineEl);
+    requestAnimationFrame(()=>lineEl.classList.add('show'));
+    line.forEach(i=>cells[i].classList.add('win'));
+  }
+
+  function endRound(result){
+    gameOver = true;
+    updateUndoState();
+    roundsPlayed++;
+    const winIcon = document.getElementById('winIcon');
+    const winModal = document.getElementById('winModal');
+    winIcon.classList.remove('celebrate');
+    winModal.classList.remove('celebrate');
+    if(result.draw){
+      winText.textContent = t('draw');
+      sndDraw();
+      stats.gamesPlayed++;
+      if(vsComputer) stats.vsComputerDraws++; else stats.pvpDraws++;
+      saveStats();
+    } else {
+      drawWinLine(result.line);
+      const isP1 = result.winner === 'X';
+      if(isP1) scores.p1++; else scores.p2++;
+
+      stats.gamesPlayed++;
+      if(vsComputer){
+        if(isP1) stats.vsComputerWins++; else stats.vsComputerLosses++;
+      } else {
+        if(isP1) stats.pvpP1Wins++; else stats.pvpP2Wins++;
+      }
+      saveStats();
+
+      let label;
+      if(vsComputer){
+        label = isP1 ? t('youWin') : t('computerWins');
+      } else {
+        label = isP1 ? t('winnerP1') : t('winnerP2');
+      }
+      winText.textContent = label;
+
+      const isBigCelebration = isP1; // human win (either vs computer, or Player 1 in PvP) gets the full celebration
+      if(isBigCelebration){
+        sndBigWin();
+        vibrate([20,40,20,40,60]);
+        winIcon.classList.add('celebrate');
+        winModal.classList.add('celebrate');
+      } else {
+        sndWin();
+        vibrate([20,40,20]);
+      }
+      setTimeout(()=>launchConfetti(isBigCelebration), 480);
+    }
+    updateScoreUI();
+    setTimeout(()=>{
+      winOverlay.classList.add('active');
+    }, 550);
+  }
+
+  function updateScoreUI(){
+    document.getElementById('p1Score').textContent = scores.p1;
+    document.getElementById('p2Score').textContent = scores.p2;
+  }
+
+  document.getElementById('playAgainBtn').addEventListener('click', ()=>{
+    sndTap();
+    winOverlay.classList.remove('active');
+    // clear win-lines
+    document.querySelectorAll('.winline').forEach(el=>el.remove());
+    if(confettiRAF) cancelAnimationFrame(confettiRAF);
+    confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    if(roundsPlayed >= selectedRounds){
+      roundsPlayed = 0;
+      scores = {p1:0, p2:0};
+      updateScoreUI();
+    }
+    updateRoundUI();
+    resetBoard();
+  });
+
+  document.getElementById('homeBtn').addEventListener('click', ()=>{ sndTap(); goHome(); });
+  document.getElementById('backBtn0').addEventListener('click', ()=>{ sndTap(); goHome(); });
+  document.getElementById('exitBtn').addEventListener('click', ()=>{ sndTap(); goHome(); });
+
+  function goHome(){
+    winOverlay.classList.remove('active');
+    document.querySelectorAll('.winline').forEach(el=>el.remove());
+    if(confettiRAF) cancelAnimationFrame(confettiRAF);
+    confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    gameScreen.classList.remove('active');
+    modeScreen.classList.add('active');
+    paused = false;
+    pausedBanner.classList.remove('show');
+  }
+
+  // ---- pause ----
+  document.getElementById('pauseBtn').addEventListener('click', ()=>{
+    sndTap();
+    paused = !paused;
+    pausedBanner.classList.toggle('show', paused);
+    updateUndoState();
+  });
+  pausedBanner.addEventListener('click', ()=>{
+    paused = false;
+    pausedBanner.classList.remove('show');
+    updateUndoState();
+  });
+
+  // ---- sound toggle ----
+  document.getElementById('soundBtn').addEventListener('click', function(){
+    soundOn = !soundOn;
+    this.textContent = soundOn ? '🔊' : '🔇';
+    if(soundOn) sndTap();
+  });
+})();
+</script>
+
+<!-- PWA: register service worker for offline play -->
+<script>
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(err){
+        console.log('Service worker registration failed:', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
